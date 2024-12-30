@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 80px; /* Deja espacio para el botón de abrir sidebar */
+      padding: 10px;
+      z-index: 0; /* Por debajo del botón de abrir sidebar */
+    }
+
+    .button {
+      font-family: Arial;
+      color: #ffffff;
+      font-size: 18px;
+      text-decoration: none;
+      border-radius: 28px;
+      box-shadow: 0px 1px 3px #666666;
+      text-shadow: 1px 1px 3px #666666;
+      border: solid #d91c71 2px;
+      background: linear-gradient(to bottom, #fc3f94, #fc0574);
+      cursor: pointer;
+      max-width: 100px;
+      width: auto;
+      padding: 10px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+      z-index: 0; /* Por debajo del botón de abrir sidebar */
+    }
+
+    .button:hover {
+      background: #e62097;
+      z-index: 0;
+    }
+
+    body {
+      font-family: "Lato", sans-serif;
+      z-index: 0;
+    }
+
+    .sidenav {
+      height: 100%;
+      width: 0; /* Iniciar cerrado */
+      position: fixed;
+      z-index: 1001; /* Por encima del botón de abrir sidebar */
+      top: 0;
+      left: 0;
+      background: rgba(255, 0, 115, 0.9);
+      overflow-x: hidden;
+      transition: 0.5s;
+      padding-top: 60px;
+      text-align: center;
+    }
+
+    .sidenav a {
+      padding: 8px 8px 8px 32px;
+      text-decoration: none;
+      font-size: 25px;
+      color: #ffffff;
+      display: block;
+      transition: 0.3s;
+      z-index: 1001; /* Por encima */
+    }
+
+    .sidenav a:hover {
+      color: #f1f1f1;
+      z-index: 1001;
+    }
+
+    .sidenav .closebtn {
+      position: absolute;
+      top: 0;
+      right: 25px;
+      font-size: 36px;
+      margin-left: 50px;
+      z-index: 1001;
+    }
+
+    @media screen and (max-height: 450px) {
+      .sidenav {
+        padding-top: 15px;
+      }
+      .sidenav a {
+        font-size: 18px;
+      }
+      z-index: 1001;
+    }
+
+    /* Estilo para el botón de abrir sidebar */
+    .openbtn {
+      position: fixed; /* Fijo en la pantalla */
+      top: 20px; /* Distancia desde la parte superior */
+      left: 20px; /* Distancia desde la izquierda */
+      font-size: 30px;
+      cursor: pointer;
+      background-color: white;
+      color: #111;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      z-index: 1000; /* Por debajo del sidebar */
+    }
+
+    .openbtn:hover {
+      background-color: #444;
+    }
+  </style>
+  <title>Draggable Button Editor</title>
+</head>
+<body>
+  <!-- Botón para abrir el sidebar -->
+  <button class="openbtn" onclick="toggleNav()">&#9776;</button>
+  
+  <div id="mySidenav" class="sidenav">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    <button class="button" onclick="createButton()">Agregar</button>
+    <button class="button" onclick="saveToJson()">Guardar</button>
+    <button class="button" onclick="loadFromJson()">Cargar</button>
+  </div>
+  
+  <div class="container">
+    <!-- Contenedor de botones aquí -->
+  </div>
+  
+  <script>
+    const container = document.querySelector('.container');
+
+    function createButton() {
+      const newButton = document.createElement('div');
+      newButton.className = 'button';
+      newButton.draggable = true;
+      newButton.dataset.value = 'New Button';
+      newButton.addEventListener('dragstart', drag);
+      newButton.addEventListener('dblclick', () => editButton(newButton));
+      container.appendChild(newButton);
+    }
+
+    function drag(event) {
+      const button = event.target;
+      event.dataTransfer.setData('text/plain', button.dataset.value);
+    }
+
+    function editButton(button) {
+      const newContent = prompt('Ingresa el nuevo contenido para el botón:', button.innerHTML);
+      if (newContent !== null) {
+        if (newContent.trim() === "") {
+          // Eliminamos el botón si el contenido es vacío
+          container.removeChild(button);
+        } else {
+          button.innerHTML = newContent;
+        }
+      }
+      const newData = prompt('Ingresa el nuevo dato para el botón:', button.dataset.value || '');
+      if (newData !== null) {
+        button.dataset.value = newData;
+      }
+    }
+
+    function saveToJson() {
+      const buttons = document.querySelectorAll('.button');
+      const data = [];
+      buttons.forEach(button => {
+        data.push({
+          content: button.innerHTML,
+          value: button.dataset.value
+        });
+      });
+      const jsonData = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'buttons.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function loadFromJson() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = event => {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = e => {
+            const jsonData = e.target.result;
+            const data = JSON.parse(jsonData);
+            container.innerHTML = ''; // Limpiamos los botones existentes
+            data.forEach(item => {
+              const newButton = document.createElement('div');
+              newButton.className = 'button';
+              newButton.draggable = true;
+              newButton.dataset.value = item.value;
+              newButton.innerHTML = item.content;
+              newButton.addEventListener('dragstart', drag);
+              newButton.addEventListener('dblclick', () => editButton(newButton));
+              container.appendChild(newButton);
+            });
+          };
+          reader.readAsText(file);
+        }
+      };
+      input.click();
+    }
+
+    function toggleNav() {
+      const sidenav = document.getElementById("mySidenav");
+      if (sidenav.style.width === "250px") {
+        closeNav();
+      } else {
+        openNav();
+      }
+    }
+
+    function openNav() {
+      document.getElementById("mySidenav").style.width = "250px";
+    }
+
+    function closeNav() {
+      document.getElementById("mySidenav").style.width = "0";
+    }
+
+    // Cerrar el sidebar al hacer clic fuera de él
+    document.body.addEventListener("click", function (event) {
+      if (!event.target.closest(".sidenav") && !event.target.matches(".button") && !event.target.matches(".openbtn")) {
+        closeNav();
+      }
+    });
+
+    // Abrir y cerrar el sidebar con la tecla "Space"
+    document.addEventListener("keydown", function (event) {
+      if (!event.target.matches("input, textarea")) {
+        if (event.code === "Space") {
+          event.preventDefault();
+          toggleNav();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
